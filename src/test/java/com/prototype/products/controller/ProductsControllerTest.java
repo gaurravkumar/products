@@ -13,6 +13,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.resolver.MockParameterResolver;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 
 import java.util.List;
 
@@ -29,6 +31,8 @@ class ProductsControllerTest {
 
     @Mock
     HttpServletRequest request;
+    @Mock
+    BindingResult bindingResult;
     ProductInputDTO productInputDTO;
     ProductOutputDTO productOutputDTO;
     String token = "22-34-56";
@@ -38,11 +42,25 @@ class ProductsControllerTest {
         productInputDTO = new ProductInputDTO(1L,"name", 1.1F,true,token);
         productOutputDTO = new ProductOutputDTO(1L,"name",1.1F,true,token,null);
     }
+
+    @Test
+    void registerProductFieldsEmptyWhileRegistrationErrorResponse() {
+        ProductInputDTO productInputDTO = new ProductInputDTO(1L,"", -1.1F,true,token);
+        FieldError fieldError = new FieldError("productInputDTO","name","Blank prohibited");
+        FieldError fieldError2 = new FieldError("productInputDTO","minimumPrice","Negative prohibited");
+        when(bindingResult.hasErrors()).thenReturn(true);
+        when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError,fieldError2));
+        ResponseEntity<ProductOutputDTO> productOutputDTOResponseEntity = productsController.registerProduct(productInputDTO, bindingResult, request);
+        assertNotNull(productOutputDTOResponseEntity);
+        assertTrue(productOutputDTOResponseEntity.getBody().error().contains("Blank prohibited"));
+        assertTrue(productOutputDTOResponseEntity.getBody().error().contains("Negative prohibited"));
+        assertTrue(productOutputDTOResponseEntity.getStatusCode().is4xxClientError());
+    }
     @Test
     void registerProduct() {
         when(request.getHeader("token")).thenReturn(token);
         when(productsServiceMock.registerProduct(productInputDTO,token)).thenReturn(productOutputDTO);
-        ResponseEntity<ProductOutputDTO> productOutputDTOResponseEntity = productsController.registerProduct(productInputDTO,request);
+        ResponseEntity<ProductOutputDTO> productOutputDTOResponseEntity = productsController.registerProduct(productInputDTO,bindingResult,request);
         assertNotNull(productOutputDTOResponseEntity);
         assertTrue(productOutputDTOResponseEntity.getStatusCode().is2xxSuccessful());
         assertEquals(1L,productOutputDTOResponseEntity.getBody().productId());
@@ -53,7 +71,7 @@ class ProductsControllerTest {
     void registerProductNotSuccessfulThrowsProductException() {
         when(request.getHeader("token")).thenReturn(token);
         when(productsServiceMock.registerProduct(productInputDTO,token)).thenThrow(new ProductException("Error Occurred"));
-        ResponseEntity<ProductOutputDTO> productOutputDTOResponseEntity = productsController.registerProduct(productInputDTO,request);
+        ResponseEntity<ProductOutputDTO> productOutputDTOResponseEntity = productsController.registerProduct(productInputDTO,bindingResult,request);
         assertNotNull(productOutputDTOResponseEntity);
         assertTrue(productOutputDTOResponseEntity.getStatusCode().is4xxClientError());
         assertEquals(1L,productOutputDTOResponseEntity.getBody().productId());

@@ -5,10 +5,12 @@ import com.prototype.products.dto.ProductOutputDTO;
 import com.prototype.products.exception.ProductException;
 import com.prototype.products.service.ProductsService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -30,8 +33,19 @@ public class ProductsController {
     }
 
     @PostMapping("/registerProduct")
-    public ResponseEntity<ProductOutputDTO> registerProduct(@RequestBody ProductInputDTO productInputDTO,
+    public ResponseEntity<ProductOutputDTO> registerProduct(@Valid @RequestBody ProductInputDTO productInputDTO,
+                                                            BindingResult bindingResult,
                                                             HttpServletRequest request) {
+        if (bindingResult.hasErrors()) {
+            // Handle validation errors
+            StringBuilder errors = new StringBuilder();
+            bindingResult.getFieldErrors().forEach(error -> {
+                errors.append(error.getDefaultMessage()).append(", ");
+            });
+            return ResponseEntity.badRequest().body(
+                    new ProductOutputDTO(productInputDTO.productId(), productInputDTO.name(), productInputDTO.minimumPrice(), productInputDTO.inAuction(),
+                            productInputDTO.owner(), errors.toString()));
+        }
         try {
             // Register the product
             var result = productsService.registerProduct(productInputDTO, request.getHeader("token"));
