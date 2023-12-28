@@ -1,5 +1,6 @@
 package com.prototype.products.service;
 
+import com.netflix.discovery.EurekaClient;
 import com.prototype.products.dto.ProductInputDTO;
 import com.prototype.products.dto.ProductOutputDTO;
 import com.prototype.products.dto.UserInputDTO;
@@ -23,15 +24,17 @@ public class ProductsServiceImpl implements ProductsService {
     private final ProductMapper productMapper;
     private final ProductRepository productRepository;
     private final RestTemplate restTemplate;
-
+    private final EurekaClient eurekaClient;
     @Autowired
     public ProductsServiceImpl(ProductRepository productRepository,
                                ProductMapper productMapper,
-                               RestTemplate restTemplate) {
+                               RestTemplate restTemplate,
+                               EurekaClient eurekaClient) {
 
         this.productMapper = productMapper;
         this.productRepository = productRepository;
         this.restTemplate = restTemplate;
+        this.eurekaClient = eurekaClient;
     }
 
     @Override
@@ -90,7 +93,8 @@ public class ProductsServiceImpl implements ProductsService {
 
     private UserOutputDTO getUserFromToken(final String userToken) {
         UserInputDTO userInputDTO = new UserInputDTO(userToken);
-        var retrievedUser = restTemplate.postForObject(userApiUrl, userInputDTO, UserOutputDTO.class);
+        var eurekaInstance = eurekaClient.getNextServerFromEureka("USERS", false);
+        var retrievedUser = restTemplate.postForObject(eurekaInstance.getHomePageUrl()+userApiUrl, userInputDTO, UserOutputDTO.class);
         return retrievedUser;
     }
 }
