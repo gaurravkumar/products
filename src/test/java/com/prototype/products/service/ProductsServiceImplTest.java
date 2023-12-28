@@ -74,7 +74,6 @@ class ProductsServiceImplTest {
     }
     @Test
     void registerProductWithInvalidUserThrowsException() {
-        System.out.println(eurekaClient.getNextServerFromEureka("USERS", false).getHomePageUrl());
         when(restTemplateMock.postForObject(eq(eurekaClient.getNextServerFromEureka("USERS", false).getHomePageUrl()+"null"), eq(userInputDTO), eq(UserOutputDTO.class))).thenReturn(null);
         assertThrows(ProductException.class, () -> productsService.registerProduct(productInputDTO, token), "Unable to validate User");
     }
