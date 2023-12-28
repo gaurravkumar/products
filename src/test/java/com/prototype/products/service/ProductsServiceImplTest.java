@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
@@ -76,6 +77,12 @@ class ProductsServiceImplTest {
     void registerProductWithInvalidUserThrowsException() {
         when(restTemplateMock.postForObject(eq(eurekaClient.getNextServerFromEureka("USERS", false).getHomePageUrl()+"null"), eq(userInputDTO), eq(UserOutputDTO.class))).thenReturn(null);
         assertThrows(ProductException.class, () -> productsService.registerProduct(productInputDTO, token), "Unable to validate User");
+    }
+    @Test
+    void registerProductWithNoTokenThrowsException() {
+        UserInputDTO inputDTO = new UserInputDTO(null);
+        when(restTemplateMock.postForObject(eq(eurekaClient.getNextServerFromEureka("USERS", false).getHomePageUrl()+"null"), eq(inputDTO), eq(UserOutputDTO.class))).thenThrow(HttpClientErrorException.class);
+        assertThrows(ProductException.class, () -> productsService.registerProduct(productInputDTO, null), "Unable to validate User");
     }
 
     @Test

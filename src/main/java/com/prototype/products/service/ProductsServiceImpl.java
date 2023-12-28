@@ -13,6 +13,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
@@ -94,7 +96,11 @@ public class ProductsServiceImpl implements ProductsService {
     private UserOutputDTO getUserFromToken(final String userToken) {
         UserInputDTO userInputDTO = new UserInputDTO(userToken);
         var eurekaInstance = eurekaClient.getNextServerFromEureka("USERS", false);
-        var retrievedUser = restTemplate.postForObject(eurekaInstance.getHomePageUrl()+userApiUrl, userInputDTO, UserOutputDTO.class);
-        return retrievedUser;
+        try {
+            var retrievedUser = restTemplate.postForObject(eurekaInstance.getHomePageUrl() + userApiUrl, userInputDTO, UserOutputDTO.class);
+            return retrievedUser;
+        } catch (HttpServerErrorException | HttpClientErrorException exception){
+            return null;
+        }
     }
 }
